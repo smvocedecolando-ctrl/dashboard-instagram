@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard de Métricas — Instagram</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f0f11;
+    --surface: #18181c;
+    --surface2: #222228;
+    --border: rgba(255,255,255,0.07);
+    --text: #f0eff5;
+    --muted: #8a8898;
+    --accent: #a78bfa;
+    --accent2: #f472b6;
+    --coral: #fb7185;
+    --green: #4ade80;
+    --amber: #fbbf24;
+    --teal: #2dd4bf;
+    --font: 'DM Sans', sans-serif;
+    --mono: 'DM Mono', monospace;
+  }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
+  .page { max-width: 1100px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
+  header { margin-bottom: 2.5rem; }
+  .header-top { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+  h1 { font-size: 1.75rem; font-weight: 600; letter-spacing: -0.03em; }
+  .sub { font-size: 13px; color: var(--muted); margin-top: 4px; font-family: var(--mono); }
+  .badge { font-size: 11px; padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border); color: var(--muted); font-family: var(--mono); }
+  .section-label { font-size: 11px; font-weight: 500; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 0.75rem; margin-top: 2.5rem; }
+  /* Summary cards */
+  .cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+  @media(max-width:900px){ .cards { grid-template-columns: repeat(3,1fr); } }
+  @media(max-width:600px){ .cards { grid-template-columns: repeat(2,1fr); } }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem 1.25rem; }
+  .card-label { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+  .card-val { font-size: 26px; font-weight: 600; letter-spacing: -0.04em; font-family: var(--mono); }
+  .card-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .card:nth-child(1) .card-val { color: var(--accent); }
+  .card:nth-child(2) .card-val { color: var(--accent2); }
+  .card:nth-child(3) .card-val { color: var(--amber); }
+  .card:nth-child(4) .card-val { color: var(--teal); }
+  .card:nth-child(5) .card-val { color: var(--coral); }
+  /* Tabs */
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .tab { font-size: 12px; padding: 5px 14px; border-radius: 20px; border: 1px solid var(--border); background: transparent; cursor: pointer; color: var(--muted); transition: all .15s; font-family: var(--font); }
+  .tab:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
+  .tab.active { background: var(--accent); border-color: var(--accent); color: #0f0f11; font-weight: 500; }
+  /* Chart containers */
+  .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; }
+  .chart-wrap { position: relative; width: 100%; }
+  /* Filters */
+  .filter-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; align-items: center; }
+  .filter-row span { font-size: 12px; color: var(--muted); margin-right: 4px; }
+  .ftag { font-size: 11px; padding: 4px 12px; border-radius: 12px; border: 1px solid var(--border); cursor: pointer; color: var(--muted); background: transparent; transition: all .15s; font-family: var(--font); }
+  .ftag:hover { color: var(--text); }
+  .ftag.active { background: var(--surface2); border-color: rgba(255,255,255,0.2); color: var(--text); }
+  /* Ranking */
+  .ranking { display: flex; flex-direction: column; gap: 6px; }
+  .rank-item { display: grid; grid-template-columns: 28px 1fr auto; gap: 12px; align-items: center; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; transition: border-color .15s; }
+  .rank-item:hover { border-color: rgba(255,255,255,0.15); }
+  .rank-num { font-size: 13px; font-weight: 600; color: var(--muted); text-align: center; font-family: var(--mono); }
+  .rank-num.gold { color: #fbbf24; }
+  .rank-num.silver { color: #94a3b8; }
+  .rank-num.bronze { color: #b45309; }
+  .rank-title { font-size: 13px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rank-meta { font-size: 11px; color: var(--muted); margin-top: 2px; display: flex; align-items: center; gap: 6px; }
+  .tipo-pill { display: inline-block; font-size: 10px; padding: 1px 7px; border-radius: 6px; font-weight: 500; }
+  .pill-CARROSSEL { background: rgba(167,139,250,0.15); color: #a78bfa; }
+  .pill-REELS { background: rgba(251,113,133,0.15); color: #fb7185; }
+  .pill-ESTÁTICO { background: rgba(74,222,128,0.15); color: #4ade80; }
+  .pill-FOTO { background: rgba(45,212,191,0.15); color: #2dd4bf; }
+  .rank-right { text-align: right; }
+  .rank-val { font-size: 15px; font-weight: 600; color: var(--text); font-family: var(--mono); }
+  .rank-metric { font-size: 10px; color: var(--muted); margin-top: 1px; }
+  /* Legend */
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 10px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="header-top">
+      <div>
+        <h1>Métricas de Conteúdo</h1>
+        <div class="sub">Instagram · Fevereiro – Março 2026</div>
+      </div>
+      <div class="badge">29 posts</div>
+    </div>
+  </header>
+
+  <div class="section-label">Visão geral</div>
+  <div class="cards" id="summary-cards"></div>
+
+  <div class="section-label" style="margin-top:2rem">Evolução ao longo do tempo</div>
+  <div class="chart-card">
+    <div class="tabs" id="line-tabs">
+      <button class="tab active" data-metric="visualizacoes">Visualizações</button>
+      <button class="tab" data-metric="interacoes">Interações</button>
+      <button class="tab" data-metric="curtidas">Curtidas</button>
+      <button class="tab" data-metric="comentarios">Comentários</button>
+      <button class="tab" data-metric="salvamentos">Salvamentos</button>
+    </div>
+    <div class="chart-wrap" style="height:220px"><canvas id="lineChart"></canvas></div>
+  </div>
+
+  <div class="section-label" style="margin-top:2rem">Comparação por post</div>
+  <div class="chart-card">
+    <div class="filter-row">
+      <span>Tipo:</span>
+      <button class="ftag active" data-tipo="TODOS">Todos</button>
+      <button class="ftag" data-tipo="CARROSSEL">Carrossel</button>
+      <button class="ftag" data-tipo="REELS">Reels</button>
+      <button class="ftag" data-tipo="ESTÁTICO">Estático</button>
+      <button class="ftag" data-tipo="FOTO">Foto</button>
+    </div>
+    <div class="tabs" id="bar-tabs">
+      <button class="tab active" data-metric="interacoes">Interações</button>
+      <button class="tab" data-metric="visualizacoes">Visualizações</button>
+      <button class="tab" data-metric="curtidas">Curtidas</button>
+      <button class="tab" data-metric="comentarios">Comentários</button>
+      <button class="tab" data-metric="salvamentos">Salvamentos</button>
+    </div>
+    <div class="legend">
+      <span class="legend-item"><span class="legend-dot" style="background:#a78bfa"></span>Carrossel</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#fb7185"></span>Reels</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#4ade80"></span>Estático</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#2dd4bf"></span>Foto</span>
+    </div>
+    <div class="chart-wrap" id="bar-wrap"><canvas id="barChart"></canvas></div>
+  </div>
+
+  <div class="section-label" style="margin-top:2rem">Ranking dos melhores posts</div>
+  <div class="tabs" id="rank-tabs">
+    <button class="tab active" data-metric="interacoes">Por interações</button>
+    <button class="tab" data-metric="visualizacoes">Por visualizações</button>
+    <button class="tab" data-metric="curtidas">Por curtidas</button>
+    <button class="tab" data-metric="salvamentos">Por salvamentos</button>
+    <button class="tab" data-metric="comentarios">Por comentários</button>
+  </div>
+  <div class="ranking" id="ranking"></div>
+</div>
+
+<script>
+const DATA = [{"titulo":"Tiro de Alerta","tipo":"CARROSSEL","data":"19/02","curtidas":97,"comentarios":63,"compartilhamentos":16,"salvamentos":51,"visualizacoes":6066,"interacoes":227},{"titulo":"O Cliente acabou de te pedir uma alteraçãozinha (reels Meme)","tipo":"REELS","data":"21/02","curtidas":132,"comentarios":66,"compartilhamentos":11,"salvamentos":28,"visualizacoes":17376,"interacoes":239},{"titulo":"Talvez o seu maior risco hoje não seja tentar algo novo.","tipo":"ESTÁTICO","data":"22/02","curtidas":241,"comentarios":0,"compartilhamentos":32,"salvamentos":43,"visualizacoes":12971,"interacoes":323},{"titulo":"Esse é o grande segredo para você realizar seus sonhos.","tipo":"REELS","data":"23/02","curtidas":58,"comentarios":3,"compartilhamentos":10,"salvamentos":19,"visualizacoes":4019,"interacoes":91},{"titulo":"Em dois dias você vai parar de...","tipo":"CARROSSEL","data":"24/02","curtidas":35,"comentarios":3,"compartilhamentos":3,"salvamentos":23,"visualizacoes":6372,"interacoes":64},{"titulo":"Youtube - As 10 ferramentas que eu e os gestores mais bem pagos do mercado usamos pra construir sistemas de elite.","tipo":"CARROSSEL","data":"25/02","curtidas":323,"comentarios":108,"compartilhamentos":118,"salvamentos":332,"visualizacoes":14186,"interacoes":886},{"titulo":"Tiro de alerta IPCA - Instagram - Sem preço","tipo":"CARROSSEL","data":"26/02","curtidas":26,"comentarios":28,"compartilhamentos":8,"salvamentos":18,"visualizacoes":4717,"interacoes":80},{"titulo":"Quando me dou conta que ainda não comprei o ingresso da Imersão Primeiro Cliente de Automação, e o lote já vai virar.","tipo":"REELS","data":"27/02","curtidas":39,"comentarios":3,"compartilhamentos":5,"salvamentos":8,"visualizacoes":28335,"interacoes":56},{"titulo":"Me chamaram de mentirosa.","tipo":"REELS","data":"28/02","curtidas":48,"comentarios":6,"compartilhamentos":10,"salvamentos":5,"visualizacoes":4296,"interacoes":0},{"titulo":"Foto do MDA XPERIENCE 2024","tipo":"FOTO","data":"01/03","curtidas":168,"comentarios":16,"compartilhamentos":4,"salvamentos":4,"visualizacoes":15524,"interacoes":192},{"titulo":"Carrossel plano B MDA Xperience","tipo":"FOTO","data":"02/03","curtidas":23,"comentarios":20,"compartilhamentos":7,"salvamentos":3,"visualizacoes":4995,"interacoes":53},{"titulo":"Isso aqui é uma automação que eu fiz em 25 minutos e com ela dá pra ganhar de 2 a 3 mil reais fácil.","tipo":"REELS","data":"03/03","curtidas":100,"comentarios":6,"compartilhamentos":37,"salvamentos":21,"visualizacoes":6679,"interacoes":166},{"titulo":"A Imersão Primeiro Cliente de Automação acontece em 10 dias e você teve essa dúvida 👉","tipo":"CARROSSEL","data":"04/03","curtidas":35,"comentarios":28,"compartilhamentos":3,"salvamentos":17,"visualizacoes":4501,"interacoes":84},{"titulo":"Youtube - Passo a Passo Para Fechar Clientes de Automação Toda Semana!","tipo":"CARROSSEL","data":"05/03","curtidas":128,"comentarios":107,"compartilhamentos":76,"salvamentos":29,"visualizacoes":8300,"interacoes":340},{"titulo":"5 automações que todo negócio precisa","tipo":"CARROSSEL","data":"06/03","curtidas":196,"comentarios":420,"compartilhamentos":64,"salvamentos":189,"visualizacoes":14709,"interacoes":869},{"titulo":"POV: O cliente me pergunta se eu sei fazer Agente de IA, mas eu ainda não assistir às aulas da Imersão.","tipo":"REELS","data":"06/03","curtidas":33,"comentarios":3,"compartilhamentos":5,"salvamentos":9,"visualizacoes":6369,"interacoes":50},{"titulo":"Faltam 7 dias imersão IPCA","tipo":"REELS","data":"07/03","curtidas":254,"comentarios":22,"compartilhamentos":67,"salvamentos":69,"visualizacoes":27418,"interacoes":412},{"titulo":"EU NÃO LARGUEI O CLT PELO DINHEIRO","tipo":"CARROSSEL","data":"08/03","curtidas":64,"comentarios":25,"compartilhamentos":2,"salvamentos":28,"visualizacoes":11256,"interacoes":119},{"titulo":"Está chegando…","tipo":"REELS","data":"09/03","curtidas":143,"comentarios":32,"compartilhamentos":31,"salvamentos":28,"visualizacoes":18801,"interacoes":235},{"titulo":"Estático Isca IPCA26 (Ebook) | EB2","tipo":"ESTÁTICO","data":"09/03","curtidas":40,"comentarios":110,"compartilhamentos":15,"salvamentos":48,"visualizacoes":5507,"interacoes":213},{"titulo":"Você aceita passar um final de semana comigo?","tipo":"CARROSSEL","data":"10/03","curtidas":30,"comentarios":17,"compartilhamentos":3,"salvamentos":15,"visualizacoes":6385,"interacoes":65},{"titulo":"Faltam 3 dias IPCA","tipo":"REELS","data":"11/03","curtidas":39,"comentarios":0,"compartilhamentos":4,"salvamentos":12,"visualizacoes":5660,"interacoes":55},{"titulo":"Reels Isca IPCA26 (Ebook 3) | EB3","tipo":"REELS","data":"11/03","curtidas":43,"comentarios":61,"compartilhamentos":2,"salvamentos":14,"visualizacoes":3841,"interacoes":122},{"titulo":"CRONOGRAMA DA IMERSÃO (ORGÂNICO)","tipo":"CARROSSEL","data":"12/03","curtidas":44,"comentarios":16,"compartilhamentos":10,"salvamentos":39,"visualizacoes":3446,"interacoes":112},{"titulo":"Uns tiram sua paz...","tipo":"REELS","data":"12/03","curtidas":50,"comentarios":18,"compartilhamentos":9,"salvamentos":17,"visualizacoes":4081,"interacoes":95},{"titulo":"CHATBOT OU AGENTE DE IA? Entenda a diferença e saiba quando usar cada um.","tipo":"CARROSSEL","data":"12/03","curtidas":61,"comentarios":2,"compartilhamentos":16,"salvamentos":38,"visualizacoes":5130,"interacoes":119},{"titulo":"🚨 ÚLTIMO DIA 🚨 IMERSÃO PRIMEIRO CLIENTE DE AUTOMAÇÃO","tipo":"ESTÁTICO","data":"13/03","curtidas":18,"comentarios":13,"compartilhamentos":3,"salvamentos":9,"visualizacoes":2227,"interacoes":44},{"titulo":"É amanhã imersão IPCA","tipo":"REELS","data":"13/03","curtidas":18,"comentarios":0,"compartilhamentos":1,"salvamentos":5,"visualizacoes":1783,"interacoes":25},{"titulo":"Se você já se sentiu invisível na sua própria vida. Eu abri meu coração para você. 👉","tipo":"CARROSSEL","data":"13/03","curtidas":19,"comentarios":7,"compartilhamentos":2,"salvamentos":10,"visualizacoes":3277,"interacoes":38}];
+
+const ML = {interacoes:'Interações',visualizacoes:'Visualizações',curtidas:'Curtidas',comentarios:'Comentários',salvamentos:'Salvamentos'};
+const COLORS = {CARROSSEL:'#a78bfa',REELS:'#fb7185',ESTÁTICO:'#4ade80',FOTO:'#2dd4bf'};
+let lineMetric='visualizacoes', barMetric='interacoes', rankMetric='interacoes', tipoFilter='TODOS';
+let lineChart, barChart;
+
+function fmt(n){ return n>=1000?(n/1000).toFixed(1)+'k':String(n); }
+
+function buildSummary(){
+  const totViz=DATA.reduce((a,d)=>a+d.visualizacoes,0);
+  const totInt=DATA.reduce((a,d)=>a+d.interacoes,0);
+  const totCurt=DATA.reduce((a,d)=>a+d.curtidas,0);
+  const totSalv=DATA.reduce((a,d)=>a+d.salvamentos,0);
+  const engRates=DATA.filter(d=>d.visualizacoes>0).map(d=>(d.curtidas+d.comentarios+d.salvamentos+d.compartilhamentos)/d.visualizacoes*100);
+  const avgEng=(engRates.reduce((a,v)=>a+v,0)/engRates.length).toFixed(2);
+  document.getElementById('summary-cards').innerHTML=[
+    {label:'Total visualizações',val:fmt(totViz),sub:DATA.length+' posts publicados'},
+    {label:'Total interações',val:fmt(totInt),sub:'média '+Math.round(totInt/DATA.length)+' por post'},
+    {label:'Total curtidas',val:fmt(totCurt),sub:'média '+Math.round(totCurt/DATA.length)+' por post'},
+    {label:'Total salvamentos',val:fmt(totSalv),sub:'média '+Math.round(totSalv/DATA.length)+' por post'},
+    {label:'Taxa de engajamento',val:avgEng+'%',sub:'curtidas + coment. + salv. + comp.'},
+  ].map(c=>`<div class="card"><div class="card-label">${c.label}</div><div class="card-val">${c.val}</div><div class="card-sub">${c.sub}</div></div>`).join('');
+}
+
+function buildLine(){
+  const ctx=document.getElementById('lineChart');
+  if(lineChart) lineChart.destroy();
+  lineChart=new Chart(ctx,{type:'line',data:{labels:DATA.map(d=>d.data),datasets:[{label:ML[lineMetric],data:DATA.map(d=>d[lineMetric]),borderColor:'#a78bfa',backgroundColor:'rgba(167,139,250,0.1)',borderWidth:2,pointRadius:3,pointBackgroundColor:'#a78bfa',tension:0.35,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>ML[lineMetric]+': '+c.raw.toLocaleString('pt-BR')},backgroundColor:'#222228',titleColor:'#f0eff5',bodyColor:'#8a8898',borderColor:'rgba(255,255,255,0.07)',borderWidth:1}},scales:{x:{ticks:{color:'#8a8898',font:{size:11},maxRotation:45,autoSkip:true,maxTicksLimit:12},grid:{display:false},border:{display:false}},y:{ticks:{color:'#8a8898',font:{size:11},callback:v=>fmt(v)},grid:{color:'rgba(255,255,255,0.04)'},border:{display:false}}}}});
+}
+
+function filteredData(){ return tipoFilter==='TODOS'?DATA:DATA.filter(d=>d.tipo===tipoFilter); }
+
+function buildBar(){
+  const fd=filteredData();
+  document.getElementById('bar-wrap').style.height=Math.max(200,fd.length*32+60)+'px';
+  const ctx=document.getElementById('barChart');
+  if(barChart) barChart.destroy();
+  barChart=new Chart(ctx,{type:'bar',data:{labels:fd.map(d=>{const t=d.titulo;return t.length>40?t.slice(0,40)+'…':t;}),datasets:[{label:ML[barMetric],data:fd.map(d=>d[barMetric]),backgroundColor:fd.map(d=>(COLORS[d.tipo]||'#888')+'bb'),borderRadius:4,borderSkipped:false}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>ML[barMetric]+': '+c.raw.toLocaleString('pt-BR')},backgroundColor:'#222228',titleColor:'#f0eff5',bodyColor:'#8a8898',borderColor:'rgba(255,255,255,0.07)',borderWidth:1}},scales:{x:{ticks:{color:'#8a8898',font:{size:11},callback:v=>fmt(v)},grid:{color:'rgba(255,255,255,0.04)'},border:{display:false}},y:{ticks:{color:'#8a8898',font:{size:11}},grid:{display:false},border:{display:false}}}}});
+}
+
+function buildRanking(){
+  const sorted=[...DATA].sort((a,b)=>b[rankMetric]-a[rankMetric]).slice(0,8);
+  document.getElementById('ranking').innerHTML=sorted.map((d,i)=>`
+    <div class="rank-item">
+      <div class="rank-num ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">${i+1}</div>
+      <div>
+        <div class="rank-title">${d.titulo.length>65?d.titulo.slice(0,65)+'…':d.titulo}</div>
+        <div class="rank-meta">${d.data}<span class="tipo-pill pill-${d.tipo}">${d.tipo}</span></div>
+      </div>
+      <div class="rank-right">
+        <div class="rank-val">${d[rankMetric].toLocaleString('pt-BR')}</div>
+        <div class="rank-metric">${ML[rankMetric]}</div>
+      </div>
+    </div>`).join('');
+}
+
+function setupTabs(id, cb){
+  document.getElementById(id).addEventListener('click',e=>{
+    const b=e.target.closest('.tab');if(!b)return;
+    document.querySelectorAll('#'+id+' .tab').forEach(t=>t.classList.remove('active'));
+    b.classList.add('active'); cb(b.dataset.metric);
+  });
+}
+
+document.querySelector('.filter-row').addEventListener('click',e=>{
+  const b=e.target.closest('.ftag');if(!b)return;
+  document.querySelectorAll('.ftag').forEach(t=>t.classList.remove('active'));
+  b.classList.add('active'); tipoFilter=b.dataset.tipo; buildBar();
+});
+
+setupTabs('line-tabs',m=>{lineMetric=m;buildLine();});
+setupTabs('bar-tabs',m=>{barMetric=m;buildBar();});
+setupTabs('rank-tabs',m=>{rankMetric=m;buildRanking();});
+
+buildSummary(); buildLine(); buildBar(); buildRanking();
+</script>
+</body>
+</html>
